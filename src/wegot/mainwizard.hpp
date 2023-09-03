@@ -16,13 +16,15 @@ public:
     std::map<int, sf::SoundBuffer> audioDataMap;
 private:
     std::map<int, std::vector<sf::Vector2f>> waveformDataMap;
+    std::map<int, float> volumes;
 
     std::vector<sf::Sound> currentSounds;
+
     int lastEmptyTrack;
 };
 
 
-//#ifdef MAINWIZARD_IMP
+#ifdef MAINWIZARD_IMP
 
 MainWizard::MainWizard()
 : lastEmptyTrack(0)
@@ -94,6 +96,10 @@ void MainWizard::render() {
 
         
       if (waveformDataMap.find(i) != waveformDataMap.end()) {
+
+
+        ImGui::SameLine();
+
     // Render waveform as a child window
       ImGui::BeginChild(("WaveformChild" + std::to_string(i)).c_str(), ImVec2(laneSize.x, laneSize.y), true);
     
@@ -156,6 +162,7 @@ void MainWizard::render() {
        {
          this->stop();
        }
+        
     }
     ImGui::End();
      
@@ -182,8 +189,9 @@ void MainWizard::addFile(std::string f) {
     }
     this->waveformDataMap[this->lastEmptyTrack] = waveform;
     this->audioDataMap[this->lastEmptyTrack] = buffer;
+    this->volumes[this->lastEmptyTrack] = 1.0f;
     this->lastEmptyTrack++;
 }
 
 
-//#endif
+#endif
