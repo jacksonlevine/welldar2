@@ -53,7 +53,7 @@ void MainWizard::play() {
     for( sf::Sound & sound : this->currentSounds) {
         sound.play();
     }
-    
+
     this->clock.restart();
 }
 
@@ -140,10 +140,10 @@ void MainWizard::render() {
                 std::vector<sf::Vector2f>& waveform = waveformDataMap[i];
                 ImVec2 startPos = ImGui::GetCursorScreenPos();
 
-                float playerHeadX = 
-                this->playing ? 
-                (this->elapsed.asSeconds() + this->clock.getElapsedTime().asSeconds()) * SCALE*2
-                : this->elapsed.asSeconds() * SCALE*2;/* Calculate the X position for the player head */
+                float playerHeadX =
+                    this->playing ?
+                    (this->elapsed.asSeconds() + this->clock.getElapsedTime().asSeconds()) * SCALE*2
+                    : this->elapsed.asSeconds() * SCALE*2;/* Calculate the X position for the player head */
                 ImVec2 playerHeadStart(startPos.x + playerHeadX, startPos.y);
                 ImVec2 playerHeadEnd(startPos.x + playerHeadX, startPos.y + 80); // Adjust the height as needed
 
@@ -217,23 +217,23 @@ void MainWizard::render() {
     static int setRecordBeginSpot = 0;
 
     if(!setRecordBeginSpot) {
-         setRecordBeginSpot = 1;
+        setRecordBeginSpot = 1;
         ImGui::SetNextWindowSize(ImVec2(350, 300));
         ImGui::SetNextWindowPos(ImVec2(890, 25));
     }
 
     if(ImGui::Begin("Recording Device")) {
 
-            static std::vector<std::string> devices = sf::SoundBufferRecorder::getAvailableDevices();
-            const char** items = new const char*[devices.size()];
-            for (size_t i = 0; i < devices.size(); ++i) {
-                items[i] = devices[i].c_str();
-            }
+        static std::vector<std::string> devices = sf::SoundBufferRecorder::getAvailableDevices();
+        const char** items = new const char*[devices.size()];
+        for (size_t i = 0; i < devices.size(); ++i) {
+            items[i] = devices[i].c_str();
+        }
 
 
-            static int item_current = 1;
-            ImGui::ListBox("", &item_current, items, IM_ARRAYSIZE(items), static_cast<int>(devices.size()));
-            delete[] items;
+        static int item_current = 1;
+        ImGui::ListBox("", &item_current, items, IM_ARRAYSIZE(items), static_cast<int>(devices.size()));
+        delete[] items;
     }
     ImGui::End();
 
