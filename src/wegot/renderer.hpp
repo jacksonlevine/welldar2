@@ -68,13 +68,13 @@ Renderer::Renderer()
     ImGui_ImplOpenGL3_Init("#version 330");
 }
 
-   void Renderer::dropCallback(GLFWwindow* window, int count, const char* paths[]) {
-        if (count > 0) {
-            const std::string droppedFilePath = paths[0];
-            
-            this->mainwiz.addFile(droppedFilePath);
-        }
+void Renderer::dropCallback(GLFWwindow* window, int count, const char* paths[]) {
+    if (count > 0) {
+        const std::string droppedFilePath = paths[0];
+
+        this->mainwiz.addFile(droppedFilePath);
     }
+}
 
 void dcall(GLFWwindow* window, int count, const char* paths[])
 {

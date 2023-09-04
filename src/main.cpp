@@ -8,11 +8,11 @@
 void main()
 {
 
-Renderer renderer;
+    Renderer renderer;
 
-while(!glfwWindowShouldClose(renderer.window))
-{
-    renderer.render();
-}
+    while(!glfwWindowShouldClose(renderer.window))
+    {
+        renderer.render();
+    }
 
 }
