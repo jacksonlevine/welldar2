@@ -32,7 +32,7 @@ private:
 };
 
 
-#ifdef MAINWIZARD_IMP
+//#ifdef MAINWIZARD_IMP
 
 MainWizard::MainWizard()
     : lastEmptyTrack(0), playing(false)
@@ -87,7 +87,7 @@ void MainWizard::render() {
 
     static int setWindowSize = 0;
     if(!setWindowSize) {
-        ImGui::SetNextWindowSize(ImVec2(800, 600));
+        ImGui::SetNextWindowSize(ImVec2(820, 600));
     }
 
     if (ImGui::Begin("Welldar2")) {
@@ -176,8 +176,8 @@ void MainWizard::render() {
 
     if(!setControlsBeginSpot) {
         setControlsBeginSpot = 1;
-        ImGui::SetNextWindowSize(ImVec2(500, 100));
-        ImGui::SetNextWindowPos(ImVec2(90, 650));
+        ImGui::SetNextWindowSize(ImVec2(350, 100));
+        ImGui::SetNextWindowPos(ImVec2(890, 600));
     }
 
 
@@ -186,13 +186,20 @@ void MainWizard::render() {
         {
             this->play();
         }
+        ImGui::SameLine();
         if(ImGui::Button("Pause"))
         {
             this->pause();
         }
+        ImGui::SameLine();
         if(ImGui::Button("Stop"))
         {
             this->stop();
+        }
+        ImGui::SameLine();
+        if(ImGui::Button("Record"))
+        {
+            std::cout << "Record" << std::endl;
         }
         if(ImGui::Button("Print volumes")) {
             std::cout << "Volumes: " << std::endl;
@@ -202,6 +209,31 @@ void MainWizard::render() {
             }
         }
 
+    }
+    ImGui::End();
+
+
+
+    static int setRecordBeginSpot = 0;
+
+    if(!setRecordBeginSpot) {
+         setRecordBeginSpot = 1;
+        ImGui::SetNextWindowSize(ImVec2(350, 300));
+        ImGui::SetNextWindowPos(ImVec2(890, 25));
+    }
+
+    if(ImGui::Begin("Recording Device")) {
+
+            static std::vector<std::string> devices = sf::SoundBufferRecorder::getAvailableDevices();
+            const char** items = new const char*[devices.size()];
+            for (size_t i = 0; i < devices.size(); ++i) {
+                items[i] = devices[i].c_str();
+            }
+
+
+            static int item_current = 1;
+            ImGui::ListBox("", &item_current, items, IM_ARRAYSIZE(items), static_cast<int>(devices.size()));
+            delete[] items;
     }
     ImGui::End();
 
@@ -232,4 +264,4 @@ void MainWizard::addFile(std::string f) {
 }
 
 
-#endif
+//#endif
