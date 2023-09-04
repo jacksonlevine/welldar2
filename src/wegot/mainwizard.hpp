@@ -176,7 +176,7 @@ void MainWizard::render() {
 
     if(!setControlsBeginSpot) {
         setControlsBeginSpot = 1;
-        ImGui::SetNextWindowSize(ImVec2(500, 80));
+        ImGui::SetNextWindowSize(ImVec2(500, 100));
         ImGui::SetNextWindowPos(ImVec2(90, 650));
     }
 
