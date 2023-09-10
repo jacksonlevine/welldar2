@@ -7,14 +7,20 @@
 #include <SFML/System/Clock.hpp>
 #include <SFML/System/Time.hpp>
 
+#define MIXBUFFERS_IMP
+#include "mixbuffers.hpp"
+
 class MainWizard {
 public:
     MainWizard();
     void render();
     void addFile(std::string f);
+    void addFromBuffer(sf::SoundBuffer& buffer);
     void play();
     void stop();
     void pause();
+    void record();
+    void exp();
 
     std::map<int, sf::SoundBuffer> audioDataMap;
 private:
@@ -22,22 +28,39 @@ private:
     std::map<int, float> volumes;
 
     std::vector<sf::Sound> currentSounds;
+    std::vector<std::shared_ptr<sf::SoundBufferRecorder>> recorders;
 
     sf::Clock clock;
     sf::Time elapsed;
 
+    std::string recordingDevice;
     bool playing;
+    bool recording;
 
     int lastEmptyTrack;
 };
 
 
-//#ifdef MAINWIZARD_IMP
+#ifdef MAINWIZARD_IMP
 
 MainWizard::MainWizard()
-    : lastEmptyTrack(0), playing(false)
+    : lastEmptyTrack(0), playing(false), recording(false), recordingDevice(sf::SoundBufferRecorder::getDefaultDevice())
 {
 
+}
+
+void MainWizard::exp() {
+    std::vector<sf::SoundBuffer> bufferPile;
+    for(auto kv : this->audioDataMap) {
+        if(kv.second.getSampleCount() != 0)
+            bufferPile.push_back(kv.second);
+    }
+    sf::SoundBuffer mixedBuffer = mixBuffers(bufferPile);
+    if(mixedBuffer.saveToFile("export.wav")) {
+        std::cout << "Exported to export.wav" << std::endl;
+    } else {
+        std::cerr << "Failed to save to export.wav" << std::endl;
+    }
 }
 
 void MainWizard::play() {
@@ -59,13 +82,23 @@ void MainWizard::play() {
 
 void MainWizard::stop() {
 
-    this->playing = false;
+    if(this->recording) {
+
+        auto recorder = recorders.back();
+        recorder->stop();
+        sf::SoundBuffer buf = recorder->getBuffer();
+        this->addFromBuffer(buf);
+        this->recording = false;
+        this->recorders.clear();
+
+    }
+
     this->elapsed = sf::Time::Zero;
     for( sf::Sound & sound : this->currentSounds) {
         sound.stop();
     }
     this->currentSounds.clear();
-
+    this->playing = false;
 
 }
 
@@ -78,6 +111,22 @@ void MainWizard::pause() {
         sound.pause();
     }
     this->playing = false;
+}
+
+void MainWizard::record() {
+
+    if(!this->recording) {
+        this->recorders.clear();
+
+        auto recorder = std::make_shared<sf::SoundBufferRecorder>();
+        recorder->start();
+        recorders.push_back(recorder);
+
+        this->recording = true;
+    } else {
+        this->stop();
+    }
+
 }
 
 float SCALE = 16.0f;
@@ -113,14 +162,22 @@ void MainWizard::render() {
 
 
             if (waveformDataMap.find(i) != waveformDataMap.end()) {
-
+                ImGui::PushID(i + 26);
                 if (ImGui::VSliderFloat((std::string("Vol") + std::to_string(i)).c_str(), ImVec2(40, 80), &this->volumes[i], 0.0f, 1.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp)) {
                     // Volume slider value changed, update the volume
                     //if (currentSounds.size() > i) {
                     //    currentSounds[i].setVolume(this->volumes[i]);
                     // }
                 }
-
+                ImGui::PopID();
+                ImGui::SameLine();
+                ImGui::PushID(i + 27);
+                if(ImGui::Button("Remove")) {
+                    this->waveformDataMap.erase(i);
+                    this->audioDataMap.erase(i);
+                    this->volumes.erase(i);
+                }
+                ImGui::PopID();
             }
         }
 
@@ -142,8 +199,8 @@ void MainWizard::render() {
 
                 float playerHeadX =
                     this->playing ?
-                    (this->elapsed.asSeconds() + this->clock.getElapsedTime().asSeconds()) * SCALE*2
-                    : this->elapsed.asSeconds() * SCALE*2;/* Calculate the X position for the player head */
+                    (this->elapsed.asSeconds() + this->clock.getElapsedTime().asSeconds()) * SCALE
+                    : this->elapsed.asSeconds() * SCALE;/* Calculate the X position for the player head */
                 ImVec2 playerHeadStart(startPos.x + playerHeadX, startPos.y);
                 ImVec2 playerHeadEnd(startPos.x + playerHeadX, startPos.y + 80); // Adjust the height as needed
 
@@ -199,7 +256,11 @@ void MainWizard::render() {
         ImGui::SameLine();
         if(ImGui::Button("Record"))
         {
-            std::cout << "Record" << std::endl;
+            this->record();
+        }
+        if(ImGui::Button("Export"))
+        {
+            this->exp();
         }
         if(ImGui::Button("Print volumes")) {
             std::cout << "Volumes: " << std::endl;
@@ -231,8 +292,25 @@ void MainWizard::render() {
         }
 
 
-        static int item_current = 1;
-        ImGui::ListBox("", &item_current, items, IM_ARRAYSIZE(items), static_cast<int>(devices.size()));
+        static int item_current_idx = 0; // Here we store our selection data as an index.
+        if (ImGui::BeginListBox("Devices"))
+        {
+            for (int n = 0; n < IM_ARRAYSIZE(items); n++)
+            {
+                const bool is_selected = (item_current_idx == n);
+                if (ImGui::Selectable(items[n], is_selected))
+                {
+                    item_current_idx = n;
+                    this->recordingDevice = devices[n];
+                    std::cout << this->recordingDevice << std::endl;
+                }
+                    
+                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                if (is_selected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndListBox();
+        }
         delete[] items;
     }
     ImGui::End();
@@ -249,7 +327,9 @@ void MainWizard::addFile(std::string f) {
     }
     const sf::Int16* audioData = buffer.getSamples();
     std::size_t sampleCount = buffer.getSampleCount();
+    
     float duration = static_cast<float>(sampleCount) / buffer.getSampleRate();
+    std::cout << "Sample rate: " << std::to_string(buffer.getSampleRate()) << std::endl;
     float waveformWidth = duration;
     std::vector<sf::Vector2f> waveform;
     for (std::size_t i = 0; i < sampleCount; i += 700) {
@@ -264,4 +344,26 @@ void MainWizard::addFile(std::string f) {
 }
 
 
-//#endif
+void MainWizard::addFromBuffer(sf::SoundBuffer& buffer) {
+
+    
+    const sf::Int16* audioData = buffer.getSamples();
+    std::size_t sampleCount = buffer.getSampleCount();
+    float duration = static_cast<float>(sampleCount) / buffer.getSampleRate();
+    
+    std::cout << "Sample rate: " << std::to_string(buffer.getSampleRate()) << std::endl;
+    float waveformWidth = duration;
+    std::vector<sf::Vector2f> waveform;
+    for (std::size_t i = 0; i < sampleCount; i += 700) {
+        float x = (static_cast<float>(i) / sampleCount) * waveformWidth;
+        float y = static_cast<float>(audioData[i]) / 32767.0f * 80.0f / 2.0f;
+        waveform.push_back(sf::Vector2f(x * SCALE, 80.0f / 2.0f - y));
+    }
+    this->waveformDataMap[this->lastEmptyTrack] = waveform;
+    this->audioDataMap[this->lastEmptyTrack] = buffer;
+    this->volumes[this->lastEmptyTrack] = 1.0f;
+    this->lastEmptyTrack++;
+}
+
+
+#endif

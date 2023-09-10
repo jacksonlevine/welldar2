@@ -4,7 +4,6 @@
 #define MAINWIZARD_IMP
 #include "wegot/renderer.hpp"
 
-
 void main()
 {
 
